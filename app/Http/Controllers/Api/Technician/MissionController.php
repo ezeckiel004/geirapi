@@ -43,7 +43,7 @@ class MissionController extends Controller
     public function start(Request $request, Intervention $intervention)
     {
         abort_unless($intervention->technician_id === $request->user()->id, 403);
-        abort_unless($intervention->status === 'accepted', 422, 'Mission non accessible.');
+        // abort_unless($intervention->status === 'accepted', 422, 'Mission non accessible.');
 
         $intervention->update(['status' => 'in_progress']);
         return response()->json(['message' => 'Mission démarrée.', 'intervention' => $intervention]);
