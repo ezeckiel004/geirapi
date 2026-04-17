@@ -12,36 +12,35 @@ class InterventionController extends Controller
     /** GET /api/admin/interventions */
    /** GET /api/admin/interventions */
 public function index(Request $request)
-{
-    $query = Intervention::with([
-        'agency:id,name,address',
-        'technician:id,name,phone',
-        'report:id,global_status,pv_file,status,submitted_at'   // chargement du rapport
-    ]);
+    {
+        $query = Intervention::with([
+            'agency:id,name,address',
+            'technician:id,name,phone',
+            'report'                    // ← On charge TOUTE la relation (sans limitation de colonnes)
+        ]);
 
-    // Filtres (gardés pour compatibilité)
-    if ($request->has('status') && $request->status !== 'all') {
-        $query->where('status', $request->status);
-    }
-    if ($request->has('priority')) {
-        $query->where('priority', $request->priority);
-    }
-    if ($request->has('agency_id')) {
-        $query->where('agency_id', $request->agency_id);
-    }
-
-    // Récupération simple sans pagination
-    $interventions = $query->orderBy('planned_date')->get();
-
-    // Ajout obligatoire de l'URL du PV pour chaque rapport
-    foreach ($interventions as $intervention) {
-        if ($intervention->report) {
-            $intervention->report->append('pv_file_url');
+        // Filtres (optionnels)
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
         }
-    }
+        if ($request->has('priority')) {
+            $query->where('priority', $request->priority);
+        }
+        if ($request->has('agency_id')) {
+            $query->where('agency_id', $request->agency_id);
+        }
 
-    return response()->json($interventions);
-}
+        $interventions = $query->orderBy('planned_date')->get();
+
+        // Force l'ajout de l'URL du PV pour chaque rapport qui existe
+        foreach ($interventions as $intervention) {
+            if ($intervention->report) {
+                $intervention->report->append('pv_file_url');
+            }
+        }
+
+        return response()->json($interventions);
+    }
     /** POST /api/admin/interventions */
     public function store(Request $request)
     {
