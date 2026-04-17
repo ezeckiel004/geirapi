@@ -17,7 +17,7 @@ class MissionController extends Controller
     {
         $missions = Intervention::with(['agency:id,name,address', 'report:id,intervention_id,status'])
             ->where('technician_id', $request->user()->id)
-            ->whereIn('status', ['accepted', 'in_progress', 'completed', 'reported'])
+            // ->whereIn('status', ['accepted', 'in_progress', 'completed', 'reported'])
             ->orderBy('planned_date')
             ->paginate(20);
 
