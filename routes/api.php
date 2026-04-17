@@ -60,6 +60,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/clients',        [UserController::class, 'clients']);
         Route::post('/clients',       [UserController::class, 'createClient']);
         Route::put('/users/{user}/toggle-active', [UserController::class, 'toggleActive']);
+
+        Route::post('/reports/{report}/validate', [AdminReportController::class, 'validate']);
     });
 
     // ─────────────────────────────────────────────────────────────
