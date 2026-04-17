@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;   // ← AJOUT OBLIGATOIRE
 
 class Report extends Model
 {
@@ -47,6 +48,7 @@ class Report extends Model
                     ->withPivot('equipment_status', 'note');
     }
 
+    // Accessor pour l'URL du PV scanné
     public function getPvFileUrlAttribute()
     {
         return $this->pv_file ? Storage::url($this->pv_file) : null;
