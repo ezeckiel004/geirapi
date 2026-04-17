@@ -13,9 +13,10 @@ class InterventionController extends Controller
     public function index(Request $request)
     {
         $query = Intervention::with([
-            'agency:id,name,address',
-            'technician:id,name,phone',
-        ]);
+        'agency:id,name,address',
+        'technician:id,name,phone',
+        'report:id,global_status,pv_file,status,submitted_at'
+    ]);
 
         if ($request->has('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
@@ -32,6 +33,15 @@ class InterventionController extends Controller
         if ($request->has('quarter')) {
             $query->where('quarter', $request->quarter);
         }
+
+        $interventions = $query->orderBy('planned_date')->paginate(20);
+
+    // Ajout de l'URL publique du PV (grâce à l'accessor du model Report)
+    foreach ($interventions as $intervention) {
+        if ($intervention->relationLoaded('report') && $intervention->report) {
+            $intervention->report->append('pv_file_url');
+        }
+    }
 
         return response()->json($query->orderBy('planned_date')->paginate(20));
     }

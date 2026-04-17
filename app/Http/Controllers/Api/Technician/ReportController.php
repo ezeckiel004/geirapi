@@ -30,61 +30,63 @@ class ReportController extends Controller
     public function store(Request $request)
 {
     $data = $request->validate([
-        'intervention_id' => 'required|exists:interventions,id',
-        'global_status'   => 'required|in:functional,partial,defective',
-        'observations'    => 'required|string|max:2000',
-        'actions_done'    => 'required|string|max:2000',
-        'recommendations' => 'nullable|string|max:1000',
-        'equipment_ids'   => 'nullable|array',
-        'equipment_ids.*' => 'exists:equipment,id',
-        'equipment_statuses' => 'nullable|array',
+        'intervention_id'   => 'required|exists:interventions,id',
+        'global_status'     => 'nullable|in:functional,partial,defective',
+        'observations'      => 'nullable|string|max:2000',
+        'actions_done'      => 'nullable|string|max:2000',
+        'recommendations'   => 'nullable|string|max:1000',
+        'equipment_ids'     => 'nullable|array',
+        'equipment_ids.*'   => 'exists:equipment,id',
+        'equipment_statuses'=> 'nullable|array',
+        'pv_file'           => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240', // OBLIGATOIRE
     ]);
 
     $intervention = Intervention::findOrFail($data['intervention_id']);
 
-    // Sécurité : le technicien doit être assigné à cette intervention
+    // Sécurité
     if ($intervention->technician_id !== $request->user()->id) {
         return response()->json(['message' => 'Vous n\'êtes pas assigné à cette intervention.'], 403);
     }
 
-    // Un seul rapport par intervention
     if ($intervention->report()->exists()) {
         return response()->json(['message' => 'Un rapport existe déjà pour cette intervention.'], 422);
     }
 
+    // Sauvegarde du fichier scanné
+    $pvPath = $request->file('pv_file')->store('reports/pvs', 'public');
+
     $report = Report::create([
         'intervention_id' => $data['intervention_id'],
         'technician_id'   => $request->user()->id,
-        'global_status'   => $data['global_status'],
+        'global_status'   => $data['global_status'] ?? 'functional',
         'observations'    => $data['observations'],
         'actions_done'    => $data['actions_done'],
         'recommendations' => $data['recommendations'] ?? null,
+        'pv_file'         => $pvPath,                    // ← AJOUTÉ
         'status'          => 'sent_to_client',
         'submitted_at'    => now(),
     ]);
 
-    // Attacher les équipements (correction principale)
+    // Équipements (inchangé)
     if (!empty($data['equipment_ids'])) {
         $pivotData = [];
         foreach ($data['equipment_ids'] as $eqId) {
-            $status = $data['equipment_statuses'][$eqId] ?? 'ok'; // valeur par défaut
-            $pivotData[$eqId] = [
-                'equipment_status' => $status,
-                'note'             => null,
-            ];
+            $status = $data['equipment_statuses'][$eqId] ?? 'ok';
+            $pivotData[$eqId] = ['equipment_status' => $status, 'note' => null];
         }
         $report->equipment()->attach($pivotData);
     }
 
-    // Mise à jour de l'intervention
+    // Mise à jour intervention
     $intervention->update([
         'status'         => 'reported',
         'completed_date' => now(),
     ]);
 
     return response()->json([
-        'message' => 'Rapport soumis avec succès. En attente de validation.',
-        'report'  => $report->load(['equipment', 'intervention.agency:id,name']),
+        'message' => 'Rapport (PV scanné) soumis avec succès.',
+        'report'  => $report->load(['equipment', 'intervention.agency:id,name'])
+                           ->append('pv_file_url'),
     ], 201);
 }
 

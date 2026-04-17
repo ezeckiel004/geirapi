@@ -16,6 +16,7 @@ class Report extends Model
         'observations',
         'actions_done',
         'recommendations',
+        'pv_file',
         'status',
         'client_comment',
         'submitted_at',
@@ -44,5 +45,10 @@ class Report extends Model
     {
         return $this->belongsToMany(Equipment::class, 'report_equipment')
                     ->withPivot('equipment_status', 'note');
+    }
+
+    public function getPvFileUrlAttribute()
+    {
+        return $this->pv_file ? Storage::url($this->pv_file) : null;
     }
 }

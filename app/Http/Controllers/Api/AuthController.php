@@ -10,6 +10,67 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+
+    public function register(Request $request)
+{
+    $data = $request->validate([
+        'name'          => 'required|string|max:255',
+        'company_name'  => 'required|string|max:255',
+        'email'         => 'required|email|unique:users,email',
+        'password'      => 'required|string|min:6|confirmed',
+        'phone'         => 'nullable|string',
+    ]);
+
+    $user = User::create([
+        'name'         => $data['name'],
+        'email'        => $data['email'],
+        'password'     => Hash::make($data['password']),
+        'role'         => 'client',
+        'company_name' => $data['company_name'],
+        'phone'        => $data['phone'] ?? null,
+        'is_active'    => true,
+    ]);
+
+    // Création automatique d'une agence par défaut pour le client
+    $agency = Agency::create([
+        'client_id' => $user->id,
+        'name'      => $data['company_name'],
+        'address'   => 'À compléter par le client',
+    ]);
+
+    // Récupération des techniciens actifs
+    $technicians = User::where('role', 'technician')
+        ->where('is_active', true)
+        ->get();
+
+    if ($technicians->isEmpty()) {
+        $technicians = User::where('role', 'technician')->get();
+    }
+
+    // 4 interventions préventives tous les 3 mois (première dans 3 mois)
+    $now = now();
+    for ($i = 0; $i < 4; $i++) {
+        $plannedDate = $now->copy()->addMonths(3 * ($i + 1));
+
+        $tech = $technicians->random();
+
+        Intervention::create([
+            'agency_id'     => $agency->id,
+            'technician_id' => $tech->id,
+            'title'         => "Préventive - " . $plannedDate->format('F Y'),
+            'type'          => 'preventive',
+            'priority'      => 'medium',
+            'planned_date'  => $plannedDate->format('Y-m-d'),
+            'description'   => 'Intervention préventive automatique après inscription client',
+            'status'        => 'scheduled',
+        ]);
+    }
+
+    return response()->json([
+        'message' => 'Compte client créé avec succès. 4 interventions préventives ont été programmées.',
+        'user'    => $this->formatUser($user),
+    ], 201);
+}
     /**
      * POST /api/auth/login
      * Retourne le token Sanctum + infos utilisateur
