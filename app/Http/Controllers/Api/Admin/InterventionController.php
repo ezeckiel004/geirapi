@@ -10,41 +10,42 @@ use Illuminate\Http\Request;
 class InterventionController extends Controller
 {
     /** GET /api/admin/interventions */
-    public function index(Request $request)
-    {
-        $query = Intervention::with([
+    /** GET /api/admin/interventions */
+public function index(Request $request)
+{
+    $query = Intervention::with([
         'agency:id,name,address',
         'technician:id,name,phone',
-        'report:id,global_status,pv_file,status,submitted_at'
+        'report:id,global_status,pv_file,status,submitted_at'   // important
     ]);
 
-        if ($request->has('status') && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-        if ($request->has('priority')) {
-            $query->where('priority', $request->priority);
-        }
-        if ($request->has('agency_id')) {
-            $query->where('agency_id', $request->agency_id);
-        }
-        if ($request->has('year')) {
-            $query->whereYear('planned_date', $request->year);
-        }
-        if ($request->has('quarter')) {
-            $query->where('quarter', $request->quarter);
-        }
+    if ($request->has('status') && $request->status !== 'all') {
+        $query->where('status', $request->status);
+    }
+    if ($request->has('priority')) {
+        $query->where('priority', $request->priority);
+    }
+    if ($request->has('agency_id')) {
+        $query->where('agency_id', $request->agency_id);
+    }
+    if ($request->has('year')) {
+        $query->whereYear('planned_date', $request->year);
+    }
+    if ($request->has('quarter')) {
+        $query->where('quarter', $request->quarter);
+    }
 
-        $interventions = $query->orderBy('planned_date')->paginate(20);
+    $interventions = $query->orderBy('planned_date')->paginate(20);
 
-    // Ajout de l'URL publique du PV (grâce à l'accessor du model Report)
+    // Ajout de l'URL du PV pour chaque rapport (important !)
     foreach ($interventions as $intervention) {
         if ($intervention->relationLoaded('report') && $intervention->report) {
             $intervention->report->append('pv_file_url');
         }
     }
 
-        return response()->json($query->orderBy('planned_date')->paginate(20));
-    }
+    return response()->json($interventions);
+}
 
     /** POST /api/admin/interventions */
     public function store(Request $request)
