@@ -10,16 +10,16 @@ use Illuminate\Http\Request;
 class InterventionController extends Controller
 {
     /** GET /api/admin/interventions */
-    /** GET /api/admin/interventions */
-/** GET /api/admin/interventions */
+   /** GET /api/admin/interventions */
 public function index(Request $request)
 {
     $query = Intervention::with([
         'agency:id,name,address',
         'technician:id,name,phone',
-        'report:id,global_status,pv_file,status,submitted_at'   // important
+        'report:id,global_status,pv_file,status,submitted_at'   // chargement du rapport
     ]);
 
+    // Filtres (gardés pour compatibilité)
     if ($request->has('status') && $request->status !== 'all') {
         $query->where('status', $request->status);
     }
@@ -29,25 +29,19 @@ public function index(Request $request)
     if ($request->has('agency_id')) {
         $query->where('agency_id', $request->agency_id);
     }
-    if ($request->has('year')) {
-        $query->whereYear('planned_date', $request->year);
-    }
-    if ($request->has('quarter')) {
-        $query->where('quarter', $request->quarter);
-    }
 
-    $interventions = $query->orderBy('planned_date')->paginate(20);
+    // Récupération simple sans pagination
+    $interventions = $query->orderBy('planned_date')->get();
 
     // Ajout obligatoire de l'URL du PV pour chaque rapport
-    $interventions->getCollection()->each(function ($intervention) {
-        if ($intervention->relationLoaded('report') && $intervention->report) {
+    foreach ($interventions as $intervention) {
+        if ($intervention->report) {
             $intervention->report->append('pv_file_url');
         }
-    });
+    }
 
     return response()->json($interventions);
 }
-
     /** POST /api/admin/interventions */
     public function store(Request $request)
     {
