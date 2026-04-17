@@ -11,6 +11,7 @@ class InterventionController extends Controller
 {
     /** GET /api/admin/interventions */
     /** GET /api/admin/interventions */
+/** GET /api/admin/interventions */
 public function index(Request $request)
 {
     $query = Intervention::with([
@@ -37,12 +38,12 @@ public function index(Request $request)
 
     $interventions = $query->orderBy('planned_date')->paginate(20);
 
-    // Ajout de l'URL du PV pour chaque rapport (important !)
-    foreach ($interventions as $intervention) {
+    // Ajout obligatoire de l'URL du PV pour chaque rapport
+    $interventions->getCollection()->each(function ($intervention) {
         if ($intervention->relationLoaded('report') && $intervention->report) {
             $intervention->report->append('pv_file_url');
         }
-    }
+    });
 
     return response()->json($interventions);
 }
