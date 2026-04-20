@@ -125,6 +125,52 @@ class AuthController extends Controller
         return response()->json($this->formatUser($request->user()));
     }
 
+    /**
+     * PUT /api/auth/profile
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name'         => 'sometimes|string|max:255',
+            'phone'        => 'nullable|string|max:255',
+            'company_name' => 'nullable|string|max:255',
+        ]);
+
+        $user->update($data);
+
+        return response()->json([
+            'message' => 'Profil mis à jour avec succès.',
+            'user'    => $this->formatUser($user),
+        ]);
+    }
+
+    /**
+     * PUT /api/auth/password
+     */
+    public function updatePassword(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'current_password' => 'required|string',
+            'password'         => 'required|string|min:6|confirmed',
+        ]);
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['Le mot de passe actuel est incorrect.'],
+            ]);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        return response()->json(['message' => 'Mot de passe modifié avec succès.']);
+    }
+
     private function formatUser(User $user): array
     {
         $stats = [
