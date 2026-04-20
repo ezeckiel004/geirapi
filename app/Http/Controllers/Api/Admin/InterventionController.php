@@ -16,7 +16,8 @@ public function index(Request $request)
         $query = Intervention::with([
             'agency:id,name,address',
             'technician:id,name,phone',
-            'report'                    // ← On charge TOUTE la relation (sans limitation de colonnes)
+            'report',
+            'report.equipment',   // belongsToMany — pas de sélection de colonnes via ':'
         ]);
 
         // Filtres (optionnels)
