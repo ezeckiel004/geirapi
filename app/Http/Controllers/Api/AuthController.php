@@ -127,6 +127,30 @@ class AuthController extends Controller
 
     private function formatUser(User $user): array
     {
+        $stats = [
+            'interventions' => 0,
+            'sites' => 0,
+            'performance' => 0,
+        ];
+
+        if ($user->role === 'admin') {
+            $stats['interventions'] = \App\Models\Intervention::count();
+            $stats['sites'] = \App\Models\Agency::count();
+            $avg = \App\Models\Agency::avg('performance');
+            $stats['performance'] = $avg ? round($avg) : 100;
+        } elseif ($user->role === 'client') {
+            $clientAgencies = \App\Models\Agency::where('client_id', $user->id)->pluck('id');
+            $stats['interventions'] = \App\Models\Intervention::whereIn('agency_id', $clientAgencies)->count();
+            $stats['sites'] = $clientAgencies->count();
+            $avg = \App\Models\Agency::where('client_id', $user->id)->avg('performance');
+            $stats['performance'] = $avg ? round($avg) : 100;
+        } elseif ($user->role === 'technician') {
+            $stats['interventions'] = \App\Models\Intervention::where('technician_id', $user->id)->count();
+            $stats['sites'] = \App\Models\Intervention::where('technician_id', $user->id)->distinct('agency_id')->count('agency_id');
+            // Mock perf for tech for now
+            $stats['performance'] = 95;
+        }
+
         return [
             'id'           => $user->id,
             'name'         => $user->name,
@@ -137,6 +161,7 @@ class AuthController extends Controller
             'matricule'    => $user->matricule,
             'is_active'    => $user->is_active,
             'created_at'   => $user->created_at,
+            'stats'        => $stats,
         ];
     }
 }
