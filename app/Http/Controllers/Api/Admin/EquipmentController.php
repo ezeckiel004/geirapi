@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Equipment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class EquipmentController extends Controller
 {
@@ -31,23 +32,28 @@ class EquipmentController extends Controller
 
     /** POST /api/admin/equipment */
     public function store(Request $request)
-    {
-        $data = $request->validate([
-            'agency_id'       => 'required|exists:agencies,id',
-            'name'            => 'required|string|max:255',
-            'serial_number'   => 'nullable|string|max:100',
-            'category' => 'required|exists:equipment_categories,code',
-            'status'          => 'in:functional,maintenance,defective',
-            'performance'     => 'integer|min:0|max:100',
-            'last_maintenance'=> 'nullable|date',
-            'next_maintenance'=> 'nullable|date',
-            'notes'           => 'nullable|string',
-            'image_url'       => 'nullable|url',
-        ]);
+{
+    $data = $request->validate([
+        'agency_id'       => 'required|exists:agencies,id',
+        'name'            => 'required|string|max:255',
+        'serial_number'   => 'nullable|string|max:100',
+        'category'        => 'required|exists:equipment_categories,code',
+        'status'          => 'in:functional,maintenance,defective',
+        'performance'     => 'integer|min:0|max:100',
+        'last_maintenance'=> 'nullable|date',
+        'next_maintenance'=> 'nullable|date',
+        'notes'           => 'nullable|string',
+        'image'           => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120', // ← NOUVEAU
+    ]);
 
-        $equipment = Equipment::create($data);
-        return response()->json($equipment->load('agency:id,name'), 201);
+    if ($request->hasFile('image')) {
+        $path = $request->file('image')->store('equipment', 'public');
+        $data['image_url'] = Storage::url($path);
     }
+
+    $equipment = Equipment::create($data);
+    return response()->json($equipment->load('agency:id,name'), 201);
+}
 
     /** GET /api/admin/equipment/{id} */
     public function show(Equipment $equipment)
@@ -57,23 +63,28 @@ class EquipmentController extends Controller
 
     /** PUT /api/admin/equipment/{id} */
     public function update(Request $request, Equipment $equipment)
-    {
-        $data = $request->validate([
-            'agency_id'       => 'exists:agencies,id',
-            'name'            => 'string|max:255',
-            'serial_number'   => 'nullable|string|max:100',
-            'category' => 'required|exists:equipment_categories,code',
-            'status'          => 'in:functional,maintenance,defective',
-            'performance'     => 'integer|min:0|max:100',
-            'last_maintenance'=> 'nullable|date',
-            'next_maintenance'=> 'nullable|date',
-            'notes'           => 'nullable|string',
-            'image_url'       => 'nullable|url',
-        ]);
+{
+    $data = $request->validate([
+        'agency_id'       => 'exists:agencies,id',
+        'name'            => 'string|max:255',
+        'serial_number'   => 'nullable|string|max:100',
+        'category'        => 'exists:equipment_categories,code',
+        'status'          => 'in:functional,maintenance,defective',
+        'performance'     => 'integer|min:0|max:100',
+        'last_maintenance'=> 'nullable|date',
+        'next_maintenance'=> 'nullable|date',
+        'notes'           => 'nullable|string',
+        'image'           => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+    ]);
 
-        $equipment->update($data);
-        return response()->json($equipment->load('agency:id,name'));
+    if ($request->hasFile('image')) {
+        $path = $request->file('image')->store('equipment', 'public');
+        $data['image_url'] = Storage::url($path);
     }
+
+    $equipment->update($data);
+    return response()->json($equipment->load('agency:id,name'));
+}
 
     /** DELETE /api/admin/equipment/{id} */
     public function destroy(Equipment $equipment)
