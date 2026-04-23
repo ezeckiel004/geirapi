@@ -45,6 +45,21 @@ class MissionController extends Controller
         abort_unless($intervention->technician_id === $request->user()->id, 403);
         // abort_unless($intervention->status === 'accepted', 422, 'Mission non accessible.');
 
+        $admin = \App\Models\User::where('role', 'admin')->first();
+
+    if ($admin) {
+        \App\Models\Notification::create([
+            'user_id'   => $admin->id,
+            'title'     => 'Intervention démarrée',
+            'message'   => "Le technicien {$request->user()->name} a commencé l'intervention #{$intervention->id} chez {$intervention->agency->name}",
+            'type'      => 'intervention_started',
+            'data'      => ['intervention_id' => $intervention->id],
+        ]);
+
+        // Email à l'admin
+        \Mail::to($admin->email)->queue(new \App\Mail\InterventionStartedMail($intervention, $request->user()));
+    }
+
         $intervention->update(['status' => 'in_progress']);
         return response()->json(['message' => 'Mission démarrée.', 'intervention' => $intervention]);
     }

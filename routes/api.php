@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\AgencyController;
 use App\Http\Controllers\Api\Admin\EquipmentController;
 use App\Http\Controllers\Api\Admin\InterventionController as AdminInterventionController;
+use App\Http\Controllers\Api\Admin\NotificationController;
 use App\Http\Controllers\Api\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Client\InterventionController as ClientInterventionController;
@@ -69,6 +70,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/equipment-categories', [\App\Http\Controllers\Api\Admin\EquipmentCategoryController::class, 'index']);
     Route::post('/equipment-categories', [\App\Http\Controllers\Api\Admin\EquipmentCategoryController::class, 'store']);
+
+        Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     });
 
     // ─────────────────────────────────────────────────────────────

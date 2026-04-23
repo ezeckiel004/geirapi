@@ -83,6 +83,28 @@ class ReportController extends Controller
         'completed_date' => now(),
     ]);
 
+    // === NOTIFICATIONS + EMAILS ===
+$admin = \App\Models\User::where('role', 'admin')->first();
+$client = $intervention->agency->client; // ou $intervention->agency->clientUser si tu as une relation
+
+if ($admin) {
+    \App\Models\Notification::create([
+        'user_id'   => $admin->id,
+        'title'     => 'Rapport soumis',
+        'message'   => "Le technicien {$request->user()->name} a soumis un rapport pour l'intervention #{$intervention->id}",
+        'type'      => 'report_submitted',
+        'data'      => ['report_id' => $report->id, 'intervention_id' => $intervention->id],
+    ]);
+
+    // Email Admin
+    \Mail::to($admin->email)->queue(new \App\Mail\ReportSubmittedMail($report, $intervention, 'admin'));
+}
+
+if ($client) {
+    // Email Client
+    \Mail::to($client->email)->queue(new \App\Mail\ReportSubmittedMail($report, $intervention, 'client'));
+}
+
     return response()->json([
         'message' => 'Rapport (PV scanné) soumis avec succès.',
         'report'  => $report->load(['equipment', 'intervention.agency:id,name'])
