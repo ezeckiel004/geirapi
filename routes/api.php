@@ -64,6 +64,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/users/{user}/toggle-active', [UserController::class, 'toggleActive']);
 
         Route::post('/reports/{report}/validate', [AdminReportController::class, 'validate']);
+
+        Route::get('/equipment-categories', [\App\Http\Controllers\Api\Admin\EquipmentCategoryController::class, 'index']);
+    Route::post('/equipment-categories', [\App\Http\Controllers\Api\Admin\EquipmentCategoryController::class, 'store']);
     });
 
     // ─────────────────────────────────────────────────────────────
