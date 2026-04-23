@@ -10,19 +10,19 @@ class NotificationController extends Controller
 {
     /**
      * GET /api/admin/notifications
-     * Liste des notifications pour l'admin
+     * Liste des notifications pour l'admin (sans pagination)
      */
     public function index(Request $request)
     {
         $notifications = Notification::where('user_id', $request->user()->id)
-            ->latest()
-            ->paginate(20);
+            ->latest()           // tri par date décroissante
+            ->get();             // ← CHANGÉ : get() au lieu de paginate()
 
         return response()->json($notifications);
     }
 
     /**
-     * POST /api/admin/notifications/{id}/read
+     * POST /api/admin/notifications/{notification}/read
      * Marquer une notification comme lue
      */
     public function markAsRead(Notification $notification, Request $request)
@@ -36,7 +36,7 @@ class NotificationController extends Controller
 
     /**
      * POST /api/admin/notifications/mark-all-read
-     * Tout marquer comme lu
+     * Tout marquer comme lu (optionnel pour l'instant)
      */
     public function markAllAsRead(Request $request)
     {
