@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Intervention;
 use Illuminate\Support\Str;
 use App\Mail\ClientWelcomeMail;
+use App\Models\Agency;
 
 class UserController extends Controller
 {
