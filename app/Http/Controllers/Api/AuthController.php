@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use App\Models\Agency;
 use App\Models\Intervention;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -210,4 +211,41 @@ class AuthController extends Controller
             'stats'        => $stats,
         ];
     }
+
+    /**
+ * DELETE /api/auth/delete-account
+ * Suppression définitive et complète du compte client
+ */
+public function deleteAccount(Request $request)
+{
+    $user = $request->user();
+
+    // Sécurité : seul un client peut supprimer son compte
+    if ($user->role !== 'client') {
+        return response()->json(['message' => 'Action non autorisée.'], 403);
+    }
+
+    DB::transaction(function () use ($user) {
+        // 1. Supprimer les agences du client
+        Agency::where('client_id', $user->id)->delete();
+
+        // 2. Supprimer toutes les interventions liées à ces agences
+        Intervention::whereIn('agency_id', function ($query) use ($user) {
+            $query->select('id')->from('agencies')->where('client_id', $user->id);
+        })->delete();
+
+        // 3. Supprimer les rapports liés (si tu as une table reports)
+        // Report::where('client_id', $user->id)->delete(); // si tu en as une
+
+        // 4. Supprimer le compte utilisateur
+        $user->delete();
+    });
+
+    // Déconnexion forcée
+    $request->user()->currentAccessToken()->delete();
+
+    return response()->json([
+        'message' => 'Votre compte a été supprimé définitivement.'
+    ]);
+}
 }

@@ -33,6 +33,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::put('/auth/password',[AuthController::class, 'updatePassword']);
 
+    Route::delete('/auth/delete-account', [AuthController::class, 'deleteAccount']);
+
     // ─────────────────────────────────────────────────────────────
     //  ADMIN
     // ─────────────────────────────────────────────────────────────

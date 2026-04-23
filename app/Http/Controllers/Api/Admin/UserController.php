@@ -87,7 +87,7 @@ class UserController extends Controller
     ]);
 
     // Générer un mot de passe aléatoire sécurisé
-    $password = Str::password(12);   // 12 caractères aléatoires
+    $password = Str::password(6);   // 6 caractères aléatoires
 
     $client = User::create([
         'name'         => $data['name'],
