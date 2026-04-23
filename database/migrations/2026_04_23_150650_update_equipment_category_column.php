@@ -13,9 +13,19 @@ return new class extends Migration
     {
         Schema::table('equipment', function (Blueprint $table) {
             $table->string('category', 100)->change();
+        });
 
-            // Optionnel mais recommandé : on ajoute la contrainte de clé étrangère
-            // (pour éviter d'avoir des catégories qui n'existent pas)
+        // 2. On corrige les données invalides (on les passe à 'other')
+        DB::statement("
+            UPDATE equipment 
+            SET category = 'ballistic' 
+            WHERE category NOT IN (
+                SELECT code FROM equipment_categories
+            )
+        ");
+
+        // 3. Maintenant on ajoute la contrainte de clé étrangère
+        Schema::table('equipment', function (Blueprint $table) {
             $table->foreign('category')
                   ->references('code')
                   ->on('equipment_categories')
@@ -30,8 +40,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('equipment', function (Blueprint $table) {
-            $table->string('category', 30)->change();
+           // On enlève la contrainte
             $table->dropForeign(['category']);
+            
+            // On remet la taille d'origine
+            $table->string('category', 30)->change();
         });
     }
 };
