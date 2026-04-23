@@ -10,6 +10,7 @@ use App\Models\Intervention;
 use Illuminate\Support\Str;
 use App\Mail\ClientWelcomeMail;
 use App\Models\Agency;
+use App\Mail\TechnicianWelcomeMail;
 
 class UserController extends Controller
 {
@@ -45,29 +46,32 @@ class UserController extends Controller
      * Créer un compte technicien
      */
     public function createTechnician(Request $request)
-    {
-        $data = $request->validate([
-            'name'      => 'required|string|max:255',
-            'email'     => 'required|email|unique:users,email',
-            'password'  => 'required|string|min:8',
-            'phone'     => 'nullable|string|max:20',
-            'matricule' => 'nullable|string|max:50',
-        ]);
+{
+    $data = $request->validate([
+        'name'      => 'required|string|max:255',
+        'email'     => 'required|email|unique:users,email',
+        'password'  => 'required|string|min:8',
+        'phone'     => 'nullable|string|max:20',
+        'matricule' => 'nullable|string|max:50',
+    ]);
 
-        $technician = User::create([
-            'name'      => $data['name'],
-            'email'     => $data['email'],
-            'password'  => Hash::make($data['password']),
-            'role'      => 'technician',
-            'phone'     => $data['phone'] ?? null,
-            'matricule' => $data['matricule'] ?? null,
-        ]);
+    $technician = User::create([
+        'name'      => $data['name'],
+        'email'     => $data['email'],
+        'password'  => Hash::make($data['password']),
+        'role'      => 'technician',
+        'phone'     => $data['phone'] ?? null,
+        'matricule' => $data['matricule'] ?? null,
+    ]);
 
-        return response()->json([
-            'message'    => 'Compte technicien créé avec succès.',
-            'technician' => $technician->only(['id', 'name', 'email', 'phone', 'matricule', 'role']),
-        ], 201);
-    }
+    // Envoi de l'email de bienvenue
+    \Mail::to($technician->email)->send(new \App\Mail\TechnicianWelcomeMail($technician, $data['password']));
+
+    return response()->json([
+        'message'    => 'Compte technicien créé avec succès. Un email avec les identifiants a été envoyé.',
+        'technician' => $technician->only(['id', 'name', 'email', 'phone', 'matricule', 'role']),
+    ], 201);
+}
 
     /**
      * POST /api/admin/clients
