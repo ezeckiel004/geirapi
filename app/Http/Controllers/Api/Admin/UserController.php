@@ -96,6 +96,12 @@ class UserController extends Controller
     // Envoi de l'email de bienvenue avec le mot de passe
     \Mail::to($client->email)->send(new \App\Mail\ClientWelcomeMail($client, $password));
 
+    $agency = Agency::create([
+        'client_id' => $client->id,
+        'name'      => $data['company_name'],
+        'address'   => 'À compléter par le client',
+    ]);
+
     // Création des interventions préventives automatiques (ton code existant)
     $technicians = User::where('role', 'technician')
         ->where('is_active', true)
@@ -111,7 +117,7 @@ class UserController extends Controller
         $tech = $technicians->random();
 
         Intervention::create([
-            'agency_id'     => $client->id,   // ou l'agence liée si tu en as une
+            'agency_id'     => $agency->id,   // ou l'agence liée si tu en as une
             'technician_id' => $tech->id,
             'title'         => "Préventive - " . $plannedDate->format('F Y'),
             'type'          => 'preventive',
