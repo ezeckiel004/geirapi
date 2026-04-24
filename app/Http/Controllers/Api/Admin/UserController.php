@@ -21,7 +21,7 @@ class UserController extends Controller
     public function technicians()
     {
         $technicians = User::where('role', 'technician')
-            ->where('is_active', true)
+            
             ->get(['id', 'name', 'email', 'phone', 'matricule']);
 
         return response()->json($technicians);
@@ -34,7 +34,7 @@ class UserController extends Controller
     public function clients()
     {
         $clients = User::where('role', 'client')
-            ->where('is_active', true)
+            
             ->with('agencies:id,name,client_id')
             ->get(['id', 'name', 'email', 'company_name', 'phone']);
 
