@@ -15,7 +15,7 @@ class RoleMiddleware
     {
         $user = $request->user();
 
-        if (!$user || !in_array($user->role, $roles)) {
+        if (!$user || !in_array($user->role, $roles) || !$user->is_active) {
             return response()->json([
                 'message' => 'Accès refusé — rôle insuffisant.',
             ], 403);
