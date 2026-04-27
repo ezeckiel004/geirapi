@@ -38,7 +38,8 @@ class ReportController extends Controller
         'equipment_ids'     => 'nullable|array',
         'equipment_ids.*'   => 'exists:equipment,id',
         'equipment_statuses'=> 'nullable|array',
-        'pv_file'           => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240', // OBLIGATOIRE
+        'pv_file'           => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+        'pv_type'           => 'required|in:pv_visite,pv_constat,pv_intervention',
     ]);
 
     $intervention = Intervention::findOrFail($data['intervention_id']);
@@ -62,7 +63,8 @@ class ReportController extends Controller
         'observations'    => $data['observations'],
         'actions_done'    => $data['actions_done'],
         'recommendations' => $data['recommendations'] ?? null,
-        'pv_file'         => $pvPath,                    // ← AJOUTÉ
+        'pv_file'         => $pvPath,
+        'pv_type'         => $data['pv_type'],
         'status'          => 'sent_to_client',
         'submitted_at'    => now(),
     ]);

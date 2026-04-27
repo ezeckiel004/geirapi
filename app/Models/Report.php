@@ -18,6 +18,7 @@ class Report extends Model
         'actions_done',
         'recommendations',
         'pv_file',
+        'pv_type',
         'status',
         'client_comment',
         'submitted_at',
