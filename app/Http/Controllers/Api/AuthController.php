@@ -74,6 +74,24 @@ class AuthController extends Controller
         'user'    => $this->formatUser($user),
     ], 201);
 }
+
+    /**
+     * POST /api/auth/forgot-password
+     * Réinitialise le mot de passe pour la démo
+     */
+    public function forgotPassword(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+        $user = User::where('email', $request->email)->first();
+
+        if ($user) {
+            $user->update(['password' => Hash::make('password')]);
+            return response()->json(['message' => 'Pour la démo, votre mot de passe a été réinitialisé à : password']);
+        }
+
+        return response()->json(['message' => 'Aucun compte trouvé avec cette adresse email.'], 404);
+    }
+
     /**
      * POST /api/auth/login
      * Retourne le token Sanctum + infos utilisateur
