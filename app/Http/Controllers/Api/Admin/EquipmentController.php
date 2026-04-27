@@ -34,7 +34,6 @@ class EquipmentController extends Controller
     public function store(Request $request)
 {
     $data = $request->validate([
-        'agency_id'       => 'required|exists:agencies,id',
         'name'            => 'required|string|max:255',
         'serial_number'   => 'nullable|string|max:100',
         'category'        => 'required|exists:equipment_categories,code',
@@ -43,7 +42,7 @@ class EquipmentController extends Controller
         'last_maintenance'=> 'nullable|date',
         'next_maintenance'=> 'nullable|date',
         'notes'           => 'nullable|string',
-        'image'           => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120', // ← NOUVEAU
+        'image'           => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
     ]);
 
     if ($request->hasFile('image')) {
@@ -51,8 +50,23 @@ class EquipmentController extends Controller
         $data['image_url'] = Storage::url($path);
     }
 
-    $equipment = Equipment::create($data);
-    return response()->json($equipment->load('agency:id,name'), 201);
+    // Créer l'équipement pour TOUTES les agences existantes
+    $agencies = \App\Models\Agency::all();
+    $created = [];
+
+    foreach ($agencies as $agency) {
+        $equipmentData = $data;
+        $equipmentData['agency_id'] = $agency->id;
+        unset($equipmentData['image']); // ne pas stocker le champ 'image' dans la DB
+
+        $equipment = Equipment::create($equipmentData);
+        $created[] = $equipment;
+    }
+
+    return response()->json([
+        'message' => 'Équipement créé pour ' . count($created) . ' entreprise(s).',
+        'equipment' => $created,
+    ], 201);
 }
 
     /** GET /api/admin/equipment/{id} */
