@@ -80,10 +80,12 @@ class UserController extends Controller
     public function createClient(Request $request)
 {
     $data = $request->validate([
-        'name'         => 'required|string|max:255',
-        'email'        => 'required|email|unique:users,email',
-        'company_name' => 'required|string|max:255',
-        'phone'        => 'nullable|string|max:20',
+        'name'               => 'required|string|max:255',
+        'email'              => 'required|email|unique:users,email',
+        'company_name'       => 'required|string|max:255',
+        'phone'              => 'nullable|string|max:20',
+        'location'           => 'nullable|string',
+        'intervention_count' => 'nullable|integer|min:0',
     ]);
 
     // Générer un mot de passe aléatoire sécurisé
@@ -96,6 +98,7 @@ class UserController extends Controller
         'role'         => 'client',
         'company_name' => $data['company_name'],
         'phone'        => $data['phone'] ?? null,
+        'location'     => $data['location'] ?? null,
     ]);
 
     // Envoi de l'email de bienvenue avec le mot de passe
@@ -107,7 +110,7 @@ class UserController extends Controller
         'address'   => 'À compléter par le client',
     ]);
 
-    // Création des interventions préventives automatiques (ton code existant)
+    // Création des interventions préventives automatiques
     $technicians = User::where('role', 'technician')
         ->where('is_active', true)
         ->get();
@@ -117,25 +120,32 @@ class UserController extends Controller
     }
 
     $now = now();
-    for ($i = 0; $i < 4; $i++) {
-        $plannedDate = $now->copy()->addMonths(3 * ($i + 1));
-        $tech = $technicians->random();
+    $count = $data['intervention_count'] ?? 4; // 4 par défaut si non spécifié
 
-        Intervention::create([
-            'agency_id'     => $agency->id,   // ou l'agence liée si tu en as une
-            'technician_id' => $tech->id,
-            'title'         => "Préventive - " . $plannedDate->format('F Y'),
-            'type'          => 'preventive',
-            'priority'      => 'medium',
-            'planned_date'  => $plannedDate->format('Y-m-d'),
-            'description'   => 'Intervention préventive automatique après inscription client',
-            'status'        => 'scheduled',
-        ]);
+    if ($technicians->isNotEmpty() && $count > 0) {
+        for ($i = 0; $i < $count; $i++) {
+            // Planifier une intervention tous les (12 / $count) mois environ. 
+            // Si 4, ça fait tous les 3 mois. Si 2, tous les 6 mois.
+            $monthsToAdd = floor(12 / $count) * ($i + 1);
+            $plannedDate = $now->copy()->addMonths($monthsToAdd);
+            $tech = $technicians->random();
+
+            Intervention::create([
+                'agency_id'     => $agency->id,
+                'technician_id' => $tech->id,
+                'title'         => "Préventive - " . $plannedDate->format('F Y'),
+                'type'          => 'preventive',
+                'priority'      => 'medium',
+                'planned_date'  => $plannedDate->format('Y-m-d'),
+                'description'   => 'Intervention préventive automatique après inscription client',
+                'status'        => 'scheduled',
+            ]);
+        }
     }
 
     return response()->json([
         'message' => 'Compte client créé avec succès. Un email avec les identifiants a été envoyé.',
-        'client'  => $client->only(['id', 'name', 'email', 'company_name', 'phone', 'role']),
+        'client'  => $client->only(['id', 'name', 'email', 'company_name', 'phone', 'location', 'role']),
     ], 201);
 }
 
@@ -154,7 +164,7 @@ class UserController extends Controller
         ])->get();
 
         return response()->json([
-            'client' => $user->only(['id', 'name', 'email', 'company_name', 'phone', 'is_active', 'role', 'created_at']),
+            'client' => $user->only(['id', 'name', 'email', 'company_name', 'phone', 'location', 'is_active', 'role', 'created_at']),
             'agencies' => $agencies
         ]);
     }
@@ -170,13 +180,14 @@ class UserController extends Controller
             'email'        => 'sometimes|required|email|unique:users,email,' . $user->id,
             'company_name' => 'sometimes|required|string|max:255',
             'phone'        => 'nullable|string|max:20',
+            'location'     => 'nullable|string',
         ]);
 
         $user->update($data);
 
         return response()->json([
             'message' => 'Client mis à jour avec succès.',
-            'client'  => $user->only(['id', 'name', 'email', 'company_name', 'phone', 'is_active', 'role'])
+            'client'  => $user->only(['id', 'name', 'email', 'company_name', 'phone', 'location', 'is_active', 'role'])
         ]);
     }
 
