@@ -81,4 +81,33 @@ public function validate(Report $report)
         'report'  => $report->fresh(['equipment', 'intervention.agency:id,name']),
     ]);
 }
+
+    /**
+     * PUT /api/admin/reports/{id}/designation-prices
+     * L'admin met à jour les prix des désignations d'un rapport
+     */
+    public function updateDesignationPrices(Request $request, Report $report)
+    {
+        $data = $request->validate([
+            'designations' => 'required|array',
+        ]);
+
+        // On fusionne les prix avec les statuts existants
+        $currentDesignations = $report->designations ?? [];
+        $updatedDesignations = [];
+
+        foreach ($data['designations'] as $key => $values) {
+            $updatedDesignations[$key] = [
+                'status' => $currentDesignations[$key]['status'] ?? null,
+                'price'  => isset($values['price']) ? (float) $values['price'] : null,
+            ];
+        }
+
+        $report->update(['designations' => $updatedDesignations]);
+
+        return response()->json([
+            'message' => 'Prix des désignations mis à jour.',
+            'report'  => $report->fresh(),
+        ]);
+    }
 }

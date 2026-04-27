@@ -19,6 +19,7 @@ class Report extends Model
         'recommendations',
         'pv_file',
         'pv_type',
+        'designations',
         'status',
         'client_comment',
         'submitted_at',
@@ -30,6 +31,7 @@ class Report extends Model
         'submitted_at'        => 'datetime',
         'sent_to_client_at'   => 'datetime',
         'client_validated_at' => 'datetime',
+        'designations'        => 'array',
     ];
 
     // ── Relations ────────────────────────────────────────────────────────

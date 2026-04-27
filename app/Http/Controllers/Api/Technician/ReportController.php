@@ -40,6 +40,7 @@ class ReportController extends Controller
         'equipment_statuses'=> 'nullable|array',
         'pv_file'           => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
         'pv_type'           => 'required|in:pv_visite,pv_constat,pv_intervention',
+        'designations'      => 'nullable|string',
     ]);
 
     $intervention = Intervention::findOrFail($data['intervention_id']);
@@ -56,6 +57,12 @@ class ReportController extends Controller
     // Sauvegarde du fichier scanné
     $pvPath = $request->file('pv_file')->store('reports/pvs', 'public');
 
+    // Décoder les désignations (envoyées en JSON string depuis le formulaire multipart)
+    $designations = null;
+    if (!empty($data['designations'])) {
+        $designations = json_decode($data['designations'], true);
+    }
+
     $report = Report::create([
         'intervention_id' => $data['intervention_id'],
         'technician_id'   => $request->user()->id,
@@ -65,6 +72,7 @@ class ReportController extends Controller
         'recommendations' => $data['recommendations'] ?? null,
         'pv_file'         => $pvPath,
         'pv_type'         => $data['pv_type'],
+        'designations'    => $designations,
         'status'          => 'sent_to_client',
         'submitted_at'    => now(),
     ]);
