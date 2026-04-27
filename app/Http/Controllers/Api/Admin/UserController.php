@@ -22,7 +22,7 @@ class UserController extends Controller
     {
         $technicians = User::where('role', 'technician')
             
-            ->get(['id', 'name', 'email', 'phone', 'matricule']);
+            ->get(['id', 'name', 'email', 'phone', 'matricule', 'is_active']);
 
         return response()->json($technicians);
     }
@@ -36,7 +36,7 @@ class UserController extends Controller
         $clients = User::where('role', 'client')
             
             ->with('agencies:id,name,client_id')
-            ->get(['id', 'name', 'email', 'company_name', 'phone']);
+            ->get(['id', 'name', 'email', 'company_name', 'phone', 'is_active']);
 
         return response()->json($clients);
     }
@@ -138,6 +138,47 @@ class UserController extends Controller
         'client'  => $client->only(['id', 'name', 'email', 'company_name', 'phone', 'role']),
     ], 201);
 }
+
+    public function showClient(User $user)
+    {
+        if ($user->role !== 'client') {
+            return response()->json(['message' => 'Not a client'], 400);
+        }
+
+        $agencies = $user->agencies()->with([
+            'interventions' => function($q) {
+                $q->orderBy('planned_date', 'desc');
+            },
+            'interventions.report',
+            'interventions.technician:id,name'
+        ])->get();
+
+        return response()->json([
+            'client' => $user->only(['id', 'name', 'email', 'company_name', 'phone', 'is_active', 'role', 'created_at']),
+            'agencies' => $agencies
+        ]);
+    }
+
+    public function updateClient(Request $request, User $user)
+    {
+        if ($user->role !== 'client') {
+            return response()->json(['message' => 'Not a client'], 400);
+        }
+
+        $data = $request->validate([
+            'name'         => 'sometimes|required|string|max:255',
+            'email'        => 'sometimes|required|email|unique:users,email,' . $user->id,
+            'company_name' => 'sometimes|required|string|max:255',
+            'phone'        => 'nullable|string|max:20',
+        ]);
+
+        $user->update($data);
+
+        return response()->json([
+            'message' => 'Client mis à jour avec succès.',
+            'client'  => $user->only(['id', 'name', 'email', 'company_name', 'phone', 'is_active', 'role'])
+        ]);
+    }
 
     /**
      * PUT /api/admin/users/{id}/toggle-active

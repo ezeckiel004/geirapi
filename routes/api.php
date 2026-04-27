@@ -65,6 +65,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/technicians',   [UserController::class, 'createTechnician']);
         Route::get('/clients',        [UserController::class, 'clients']);
         Route::post('/clients',       [UserController::class, 'createClient']);
+        Route::get('/clients/{user}', [UserController::class, 'showClient']);
+        Route::put('/clients/{user}', [UserController::class, 'updateClient']);
         Route::put('/users/{user}/toggle-active', [UserController::class, 'toggleActive']);
 
         Route::post('/reports/{report}/validate', [AdminReportController::class, 'validate']);
