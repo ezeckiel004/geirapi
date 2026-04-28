@@ -74,4 +74,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(User::class, 'parent_id')->where('role', 'client_tech');
     }
+
+    public function clientAccessId(): int
+    {
+        if ($this->isClientTech()) {
+            if (empty($this->parent_id)) {
+                abort(403, 'Technicien client sans client parent.');
+            }
+            return $this->parent_id;
+        }
+
+        if ($this->isClient()) {
+            return $this->id;
+        }
+
+        abort(403, 'Accès réservé aux clients et techniciens clients.');
+    }
 }

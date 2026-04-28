@@ -10,7 +10,6 @@ class ReportController extends Controller
 {
     /**
      * GET /api/client/reports
-     * Retourne tous les rapports du client connecté (soumis, envoyés, validés, refusés)
      */
     public function index(Request $request)
     {
@@ -19,7 +18,7 @@ class ReportController extends Controller
             'intervention.agency:id,name',
             'equipment:id,name,category',
         ])
-        ->whereHas('intervention.agency', fn($q) => $q->where('client_id', $request->user()->id))
+        ->whereHas('intervention.agency', fn($q) => $q->where('client_id', $request->user()->clientAccessId()))
         ->whereIn('status', ['submitted', 'sent_to_client', 'validated', 'rejected'])
         ->latest()
         ->get();
@@ -54,7 +53,6 @@ class ReportController extends Controller
             'client_validated_at'  => now(),
         ]);
 
-        // Marquer l'intervention comme validée
         $report->intervention()->update(['status' => 'validated']);
 
         return response()->json([
@@ -81,7 +79,6 @@ class ReportController extends Controller
             'client_comment' => $request->comment,
         ]);
 
-        // Remettre l'intervention en "completed" pour que le technicien puisse refaire
         $report->intervention()->update(['status' => 'completed']);
 
         return response()->json([
@@ -90,15 +87,11 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * Autorisation centralisée
-     */
     private function authorizeClientReport($user, Report $report): void
     {
-        // Chargement forcé des relations si elles ne sont pas déjà chargées
         $report->loadMissing(['intervention.agency']);
 
-        $belongsToClient = $report->intervention?->agency?->client_id === $user->id;
+        $belongsToClient = $report->intervention?->agency?->client_id === $user->clientAccessId();
 
         abort_unless($belongsToClient, 403, 'Accès non autorisé.');
     }

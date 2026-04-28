@@ -10,14 +10,14 @@ class InterventionController extends Controller
 {
     /**
      * GET /api/client/year
-     * Les 4 interventions annuelles de l'agence du client
+     * Les 4 interventions annuelles de l'agence du client (ou de son client parent)
      */
     public function year(Request $request)
     {
         $year = $request->query('year', now()->year);
 
         $interventions = Intervention::with(['agency:id,name', 'technician:id,name'])
-            ->whereHas('agency', fn($q) => $q->where('client_id', $request->user()->id))
+            ->whereHas('agency', fn($q) => $q->where('client_id', $request->user()->clientAccessId()))
             ->whereYear('planned_date', $year)
             ->orderBy('planned_date')
             ->get();
@@ -32,7 +32,7 @@ class InterventionController extends Controller
     public function index(Request $request)
     {
         $interventions = Intervention::with(['agency:id,name', 'technician:id,name'])
-            ->whereHas('agency', fn($q) => $q->where('client_id', $request->user()->id))
+            ->whereHas('agency', fn($q) => $q->where('client_id', $request->user()->clientAccessId()))
             ->orderBy('planned_date')
             ->paginate(20);
 
@@ -82,7 +82,7 @@ class InterventionController extends Controller
 
     private function authorizeClientIntervention($user, Intervention $intervention): void
     {
-        $belongsToClient = $intervention->agency->client_id === $user->id;
+        $belongsToClient = $intervention->agency->client_id === $user->clientAccessId();
         abort_unless($belongsToClient, 403, 'Accès non autorisé.');
     }
 }
