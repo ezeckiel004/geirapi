@@ -86,7 +86,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ─────────────────────────────────────────────────────────────
     //  CLIENT
     // ─────────────────────────────────────────────────────────────
-    Route::middleware('role:client')->prefix('client')->group(function () {
+    Route::middleware('role:client,client_tech')->prefix('client')->group(function () {
 
         // Vue annuelle des 4 interventions
         Route::get('/year', [ClientInterventionController::class, 'year']);
