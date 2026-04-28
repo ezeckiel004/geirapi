@@ -203,4 +203,50 @@ class UserController extends Controller
             'is_active' => $user->is_active,
         ]);
     }
+
+    /**
+     * GET /api/admin/clients/{user}/technicians
+     */
+    public function getClientTechnicians(User $user)
+    {
+        if ($user->role !== 'client') {
+            return response()->json(['message' => 'Not a client'], 400);
+        }
+
+        $technicians = $user->clientTechnicians()->get(['id', 'name', 'email', 'phone', 'is_active', 'created_at']);
+        
+        return response()->json($technicians);
+    }
+
+    /**
+     * POST /api/admin/clients/{user}/technicians
+     */
+    public function createClientTechnician(Request $request, User $user)
+    {
+        if ($user->role !== 'client') {
+            return response()->json(['message' => 'Not a client'], 400);
+        }
+
+        $data = $request->validate([
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6',
+            'phone'    => 'nullable|string|max:20',
+        ]);
+
+        $technician = User::create([
+            'name'      => $data['name'],
+            'email'     => $data['email'],
+            'password'  => Hash::make($data['password']),
+            'role'      => 'client_tech',
+            'parent_id' => $user->id,
+            'phone'     => $data['phone'] ?? null,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'message'    => 'Technicien client créé avec succès.',
+            'technician' => $technician->only(['id', 'name', 'email', 'phone', 'is_active', 'created_at']),
+        ], 201);
+    }
 }

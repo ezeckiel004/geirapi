@@ -21,6 +21,7 @@ class User extends Authenticatable
         'matricule',
         'is_active',
         'location',
+        'parent_id',
     ];
 
     protected $hidden = [
@@ -41,6 +42,7 @@ class User extends Authenticatable
     public function isAdmin(): bool      { return $this->role === 'admin'; }
     public function isClient(): bool     { return $this->role === 'client'; }
     public function isTechnician(): bool { return $this->role === 'technician'; }
+    public function isClientTech(): bool { return $this->role === 'client_tech'; }
 
     // ── Relations ─────────────────────────────────────────────────────────
     /** Agences associées au client */
@@ -59,5 +61,17 @@ class User extends Authenticatable
     public function reports()
     {
         return $this->hasMany(Report::class, 'technician_id');
+    }
+
+    /** Pour un technicien client, récupérer le client parent */
+    public function parent()
+    {
+        return $this->belongsTo(User::class, 'parent_id');
+    }
+
+    /** Pour un client, récupérer ses techniciens */
+    public function clientTechnicians()
+    {
+        return $this->hasMany(User::class, 'parent_id')->where('role', 'client_tech');
     }
 }
