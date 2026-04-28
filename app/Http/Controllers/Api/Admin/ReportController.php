@@ -87,29 +87,35 @@ public function validate(Report $report)
      * L'admin met à jour les prix des désignations d'un rapport
      */
     public function updateDesignationPrices(Request $request, Report $report)
-    {
-        $data = $request->validate([
-            'designations' => 'required|array',
-        ]);
+{
+    $data = $request->validate([
+        'designations' => 'required|array',
+    ]);
 
-        // On fusionne les prix avec les statuts existants
-        $currentDesignations = $report->designations ?? [];
-        $updatedDesignations = [];
+    // On récupère les désignations actuelles (on ne les écrase jamais)
+    $currentDesignations = $report->designations ?? [];
 
-        foreach ($data['designations'] as $key => $values) {
-            $updatedDesignations[$key] = [
-                'status' => $currentDesignations[$key]['status'] ?? null,
-                'price'  => isset($values['price']) ? (float) $values['price'] : null,
-            ];
+    foreach ($data['designations'] as $key => $values) {
+        // On s'assure que la clé existe déjà
+        if (!isset($currentDesignations[$key])) {
+            $currentDesignations[$key] = ['status' => null];
         }
 
-        $report->update(['designations' => $updatedDesignations]);
-
-        return response()->json([
-            'message' => 'Prix des désignations mis à jour.',
-            'report'  => $report->fresh(),
-        ]);
+        // On met à jour SEULEMENT le prix (le status reste intact)
+        if (isset($values['price'])) {
+            $currentDesignations[$key]['price'] = $values['price'] !== null 
+                ? (float) $values['price'] 
+                : null;
+        }
     }
+
+    $report->update(['designations' => $currentDesignations]);
+
+    return response()->json([
+        'message' => 'Prix des désignations mis à jour avec succès.',
+        'report'  => $report->fresh(),
+    ]);
+}
 
     /**
      * POST /api/admin/reports/{id}/send-designation-prices
