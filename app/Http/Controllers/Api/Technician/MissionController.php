@@ -15,7 +15,7 @@ class MissionController extends Controller
      */
     public function index(Request $request)
     {
-        $missions = Intervention::with(['agency:id,name,address', 'report:id,intervention_id,status', 'agency.client:id,name,location'])
+        $missions = Intervention::with(['agency:id,name,address', 'report:id,intervention_id,status', 'agency.client'])
             ->where('technician_id', $request->user()->id)
             // ->whereIn('status', ['accepted', 'in_progress', 'completed', 'reported'])
             ->orderBy('planned_date')
