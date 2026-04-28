@@ -71,6 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/reports/{report}/validate', [AdminReportController::class, 'validate']);
         Route::put('/reports/{report}/designation-prices', [AdminReportController::class, 'updateDesignationPrices']);
+        Route::post('/reports/{report}/send-designation-prices', [AdminReportController::class, 'sendDesignationPricesToClient']);
 
         Route::get('/equipment-categories', [\App\Http\Controllers\Api\Admin\EquipmentCategoryController::class, 'index']);
     Route::post('/equipment-categories', [\App\Http\Controllers\Api\Admin\EquipmentCategoryController::class, 'store']);

@@ -110,4 +110,53 @@ public function validate(Report $report)
             'report'  => $report->fresh(),
         ]);
     }
+
+    /**
+     * POST /api/admin/reports/{id}/send-designation-prices
+     * Met à jour les prix des désignations et envoie un email au client
+     */
+    public function sendDesignationPricesToClient(Request $request, Report $report)
+    {
+        $data = $request->validate([
+            'designations' => 'required|array',
+        ]);
+
+        // Fusionner avec les statuts existants
+        $currentDesignations = $report->designations ?? [];
+        $updatedDesignations = [];
+
+        foreach ($data['designations'] as $key => $values) {
+            $updatedDesignations[$key] = [
+                'status' => $currentDesignations[$key]['status'] ?? null,
+                'price'  => isset($values['price']) ? (float) $values['price'] : null,
+            ];
+        }
+
+        $report->update(['designations' => $updatedDesignations]);
+
+        // Trouver le client
+        $intervention = $report->intervention()->with('agency.client')->first();
+        $client = $intervention?->agency?->client;
+
+        if (!$client) {
+            return response()->json(['message' => 'Client introuvable pour cette intervention.'], 404);
+        }
+
+        // Envoyer l'email
+        try {
+            \Mail::to($client->email)->queue(
+                new \App\Mail\DesignationPricesMail($report->fresh(), $intervention)
+            );
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Prix enregistrés mais erreur lors de l\'envoi de l\'email: ' . $e->getMessage(),
+                'report'  => $report->fresh(),
+            ], 200);
+        }
+
+        return response()->json([
+            'message' => 'Prix enregistrés et devis envoyé au client (' . $client->email . ').',
+            'report'  => $report->fresh(),
+        ]);
+    }
 }
