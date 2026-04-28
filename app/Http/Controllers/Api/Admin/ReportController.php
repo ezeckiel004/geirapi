@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Report;
-use App\Models\Intervention;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
@@ -34,7 +33,6 @@ class ReportController extends Controller
 
     /**
      * POST /api/admin/reports/{id}/send-to-client
-     * L'admin envoie le rapport au client pour validation
      */
     public function sendToClient(Report $report)
     {
@@ -47,79 +45,59 @@ class ReportController extends Controller
             'sent_to_client_at' => now(),
         ]);
 
-        // Mettre à jour l'intervention en statut "reported"
         $report->intervention()->update(['status' => 'reported']);
 
         return response()->json(['message' => 'Rapport envoyé au client.', 'report' => $report]);
     }
 
     /**
- * POST /api/admin/reports/{id}/validate
- * L'admin valide le rapport du technicien
- */
-public function validate(Report $report)
-{
-    if ($report->status !== 'sent_to_client') {
+     * POST /api/admin/reports/{id}/validate
+     */
+    public function validate(Report $report)
+    {
+        if ($report->status !== 'sent_to_client') {
+            return response()->json([
+                'message' => 'Ce rapport ne peut pas être validé pour le moment.'
+            ], 422);
+        }
+
+        $report->update([
+            'status'               => 'validated',
+            'client_validated_at'  => now(),
+        ]);
+
+        $report->intervention()->update([
+            'status'               => 'validated',
+            'client_validated_at'  => now(),
+        ]);
+
         return response()->json([
-            'message' => 'Ce rapport ne peut pas être validé pour le moment.'
-        ], 422);
+            'message' => 'Rapport validé avec succès.',
+            'report'  => $report->fresh(['equipment', 'intervention.agency:id,name']),
+        ]);
     }
-
-    $report->update([
-        'status'               => 'validated',
-        'client_validated_at'  => now(),
-    ]);
-
-    // Mise à jour de l'intervention
-    $report->intervention()->update([
-        'status'               => 'validated',
-        'client_validated_at'  => now(),
-    ]);
-
-    return response()->json([
-        'message' => 'Rapport validé avec succès.',
-        'report'  => $report->fresh(['equipment', 'intervention.agency:id,name']),
-    ]);
-}
 
     /**
      * PUT /api/admin/reports/{id}/designation-prices
-     * L'admin met à jour les prix des désignations d'un rapport
+     * Mise à jour des prix uniquement
      */
     public function updateDesignationPrices(Request $request, Report $report)
-{
-    $data = $request->validate([
-        'designations' => 'required|array',
-    ]);
+    {
+        $data = $request->validate([
+            'designations' => 'required|array',
+        ]);
 
-    // On récupère les désignations actuelles (on ne les écrase jamais)
-    $currentDesignations = $report->designations ?? [];
+        $this->mergeDesignationPrices($report, $data['designations']);
 
-    foreach ($data['designations'] as $key => $values) {
-        // On s'assure que la clé existe déjà
-        if (!isset($currentDesignations[$key])) {
-            $currentDesignations[$key] = ['status' => null];
-        }
-
-        // On met à jour SEULEMENT le prix (le status reste intact)
-        if (isset($values['price'])) {
-            $currentDesignations[$key]['price'] = $values['price'] !== null 
-                ? (float) $values['price'] 
-                : null;
-        }
+        return response()->json([
+            'message' => 'Prix des désignations mis à jour.',
+            'report'  => $report->fresh(),
+        ]);
     }
-
-    $report->update(['designations' => $currentDesignations]);
-
-    return response()->json([
-        'message' => 'Prix des désignations mis à jour avec succès.',
-        'report'  => $report->fresh(),
-    ]);
-}
 
     /**
      * POST /api/admin/reports/{id}/send-designation-prices
-     * Met à jour les prix des désignations et envoie un email au client
+     * Mise à jour des prix + envoi email au client
      */
     public function sendDesignationPricesToClient(Request $request, Report $report)
     {
@@ -127,35 +105,35 @@ public function validate(Report $report)
             'designations' => 'required|array',
         ]);
 
-        // Fusionner avec les statuts existants
-        $currentDesignations = $report->designations ?? [];
-        $updatedDesignations = [];
+        // Mise à jour des prix (sans écraser les statuts existants)
+        $this->mergeDesignationPrices($report, $data['designations']);
 
-        foreach ($data['designations'] as $key => $values) {
-            $updatedDesignations[$key] = [
-                'status' => $currentDesignations[$key]['status'] ?? null,
-                'price'  => isset($values['price']) ? (float) $values['price'] : null,
-            ];
-        }
+        // === CHARGEMENT CORRECT DU CLIENT ===
+        $report->loadMissing([
+            'intervention.agency.client'   // ← C'est la correction principale
+        ]);
 
-        $report->update(['designations' => $updatedDesignations]);
-
-        // Trouver le client
-        $intervention = $report->intervention()->with('agency.client')->first();
-        $client = $intervention?->agency?->client;
+        $client = $report->intervention?->agency?->client;
 
         if (!$client) {
-            return response()->json(['message' => 'Client introuvable pour cette intervention.'], 404);
+            return response()->json([
+                'message' => 'Client introuvable pour cette intervention.',
+                'debug'   => [
+                    'has_intervention' => $report->relationLoaded('intervention'),
+                    'has_agency'       => $report->intervention?->relationLoaded('agency'),
+                    'client_id_present'=> $report->intervention?->agency?->client_id ?? null,
+                ]
+            ], 404);
         }
 
-        // Envoyer l'email
+        // Envoi de l'email
         try {
             \Mail::to($client->email)->queue(
-                new \App\Mail\DesignationPricesMail($report->fresh(), $intervention)
+                new \App\Mail\DesignationPricesMail($report->fresh(), $report->intervention)
             );
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Prix enregistrés mais erreur lors de l\'envoi de l\'email: ' . $e->getMessage(),
+                'message' => 'Prix enregistrés, mais erreur lors de l\'envoi de l\'email : ' . $e->getMessage(),
                 'report'  => $report->fresh(),
             ], 200);
         }
@@ -164,5 +142,27 @@ public function validate(Report $report)
             'message' => 'Prix enregistrés et devis envoyé au client (' . $client->email . ').',
             'report'  => $report->fresh(),
         ]);
+    }
+
+    /**
+     * Méthode privée réutilisable (évite la duplication de code)
+     */
+    private function mergeDesignationPrices(Report $report, array $newPrices): void
+    {
+        $current = $report->designations ?? [];
+
+        foreach ($newPrices as $key => $values) {
+            if (!isset($current[$key])) {
+                $current[$key] = ['status' => null];
+            }
+
+            if (isset($values['price'])) {
+                $current[$key]['price'] = $values['price'] !== null 
+                    ? (float) $values['price'] 
+                    : null;
+            }
+        }
+
+        $report->update(['designations' => $current]);
     }
 }
