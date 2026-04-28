@@ -96,53 +96,60 @@ class ReportController extends Controller
     }
 
     /**
-     * POST /api/admin/reports/{id}/send-designation-prices
-     * Mise à jour des prix + envoi email au client
-     */
-    public function sendDesignationPricesToClient(Request $request, Report $report)
-    {
-        $data = $request->validate([
-            'designations' => 'required|array',
-        ]);
+ * POST /api/admin/reports/{id}/send-designation-prices
+ * Mise à jour des prix + envoi email au client
+ */
+public function sendDesignationPricesToClient(Request $request, Report $report)
+{
+    $data = $request->validate([
+        'designations' => 'required|array',
+    ]);
 
-        // Mise à jour des prix (sans écraser les statuts existants)
-        $this->mergeDesignationPrices($report, $data['designations']);
+    // Mise à jour des prix (réutilisation de la méthode privée)
+    $this->mergeDesignationPrices($report, $data['designations']);
 
-        // === CHARGEMENT CORRECT DU CLIENT ===
-        $report->loadMissing([
-            'intervention.agency.client'   // ← C'est la correction principale
-        ]);
+    // Chargement complet et sécurisé
+    $report->loadMissing([
+        'intervention.agency.client',     // relation complète
+        'intervention.agency',            // fallback
+    ]);
 
-        $client = $report->intervention?->agency?->client;
+    $agency = $report->intervention?->agency;
+    $client = $agency?->client;
 
-        if (!$client) {
-            return response()->json([
-                'message' => 'Client introuvable pour cette intervention.',
-                'debug'   => [
-                    'has_intervention' => $report->relationLoaded('intervention'),
-                    'has_agency'       => $report->intervention?->relationLoaded('agency'),
-                    'client_id_present'=> $report->intervention?->agency?->client_id ?? null,
-                ]
-            ], 404);
-        }
-
-        // Envoi de l'email
-        try {
-            \Mail::to($client->email)->queue(
-                new \App\Mail\DesignationPricesMail($report->fresh(), $report->intervention)
-            );
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Prix enregistrés, mais erreur lors de l\'envoi de l\'email : ' . $e->getMessage(),
-                'report'  => $report->fresh(),
-            ], 200);
-        }
-
+    // === DEBUG DÉTAILLÉ POUR T’AIDER ===
+    if (!$client) {
         return response()->json([
-            'message' => 'Prix enregistrés et devis envoyé au client (' . $client->email . ').',
-            'report'  => $report->fresh(),
-        ]);
+            'message' => 'Client introuvable pour cette intervention.',
+            'debug'   => [
+                'report_id'        => $report->id,
+                'intervention_id'  => $report->intervention_id,
+                'agency_id'        => $agency?->id,
+                'agency_client_id' => $agency?->client_id,           // ← voilà le coupable
+                'client_found'     => $client !== null,
+                'agency_exists'    => $agency !== null,
+                'intervention_exists' => $report->intervention !== null,
+            ]
+        ], 404);
     }
+
+    // Envoi de l'email
+    try {
+        \Mail::to($client->email)->queue(
+            new \App\Mail\DesignationPricesMail($report->fresh(), $report->intervention)
+        );
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Prix enregistrés, mais erreur lors de l\'envoi de l\'email : ' . $e->getMessage(),
+            'report'  => $report->fresh(),
+        ], 200);
+    }
+
+    return response()->json([
+        'message' => 'Prix enregistrés et devis envoyé au client (' . $client->email . ').',
+        'report'  => $report->fresh(),
+    ]);
+}
 
     /**
      * Méthode privée réutilisable (évite la duplication de code)
