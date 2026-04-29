@@ -20,12 +20,14 @@ class Equipment extends Model
         'next_maintenance',
         'image_url',
         'notes',
+        'is_available',
     ];
 
     protected $casts = [
         'performance'      => 'integer',
         'last_maintenance' => 'date',
         'next_maintenance' => 'date',
+        'is_available'     => 'boolean',
     ];
 
     // ── Helpers ──────────────────────────────────────────────────────────

@@ -42,13 +42,16 @@ class EquipmentController extends Controller
         'last_maintenance'=> 'nullable|date',
         'next_maintenance'=> 'nullable|date',
         'notes'           => 'nullable|string',
+        'is_available'    => 'nullable|boolean',
         'image'           => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
-    ]);
+    ]); 
 
     if ($request->hasFile('image')) {
         $path = $request->file('image')->store('equipment', 'public');
         $data['image_url'] = Storage::url($path);
     }
+
+    
 
     // Créer l'équipement pour TOUTES les agences existantes
     $agencies = \App\Models\Agency::all();
@@ -57,6 +60,7 @@ class EquipmentController extends Controller
     foreach ($agencies as $agency) {
         $equipmentData = $data;
         $equipmentData['agency_id'] = $agency->id;
+        $equipmentData['is_available'] = $data['is_available'] ?? true; // valeur par défaut
         unset($equipmentData['image']); // ne pas stocker le champ 'image' dans la DB
 
         $equipment = Equipment::create($equipmentData);
@@ -88,6 +92,7 @@ class EquipmentController extends Controller
         'last_maintenance'=> 'nullable|date',
         'next_maintenance'=> 'nullable|date',
         'notes'           => 'nullable|string',
+        'is_available' => 'boolean',   // ← AJOUTÉ
         'image'           => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
     ]);
 
