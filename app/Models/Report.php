@@ -25,6 +25,7 @@ class Report extends Model
         'submitted_at',
         'sent_to_client_at',
         'client_validated_at',
+        'defective_photos',
     ];
 
     protected $casts = [
@@ -32,6 +33,7 @@ class Report extends Model
         'sent_to_client_at'   => 'datetime',
         'client_validated_at' => 'datetime',
         'designations'        => 'array',
+        'defective_photos'    => 'array',
     ];
 
     // ── Relations ────────────────────────────────────────────────────────
@@ -55,5 +57,13 @@ class Report extends Model
     public function getPvFileUrlAttribute()
     {
         return $this->pv_file ? Storage::url($this->pv_file) : null;
+    }
+
+    public function getDefectivePhotosUrlsAttribute()
+    {
+        if (empty($this->defective_photos)) {
+            return [];
+        }
+        return array_map(fn($path) => Storage::url($path), $this->defective_photos);
     }
 }

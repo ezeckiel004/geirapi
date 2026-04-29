@@ -41,6 +41,8 @@ class ReportController extends Controller
         'pv_file'           => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
         'pv_type'           => 'required|in:pv_visite,pv_constat,pv_intervention',
         'designations'      => 'nullable|string',
+        'defective_photos'     => 'nullable|array',
+        'defective_photos.*'   => 'file|mimes:jpg,jpeg,png|max:10240',
     ]);
 
     $intervention = Intervention::findOrFail($data['intervention_id']);
@@ -63,6 +65,14 @@ class ReportController extends Controller
         $designations = json_decode($data['designations'], true);
     }
 
+    $defectivePhotosPaths = [];
+    if ($request->hasFile('defective_photos')) {
+        foreach ($request->file('defective_photos') as $photo) {
+            $path = $photo->store('reports/defective', 'public');
+            $defectivePhotosPaths[] = $path;
+        }
+    }
+
     $report = Report::create([
         'intervention_id' => $data['intervention_id'],
         'technician_id'   => $request->user()->id,
@@ -73,6 +83,7 @@ class ReportController extends Controller
         'pv_file'         => $pvPath,
         'pv_type'         => $data['pv_type'],
         'designations'    => $designations,
+        'defective_photos' => $defectivePhotosPaths,
         'status'          => 'sent_to_client',
         'submitted_at'    => now(),
     ]);
@@ -116,10 +127,10 @@ if ($client) {
 }
 
     return response()->json([
-        'message' => 'Rapport (PV scanné) soumis avec succès.',
-        'report'  => $report->load(['equipment', 'intervention.agency:id,name'])
-                           ->append('pv_file_url'),
-    ], 201);
+    'message' => 'Rapport soumis avec succès.',
+    'report'  => $report->load(['equipment', 'intervention.agency:id,name'])
+                       ->append(['pv_file_url', 'defective_photos_urls']),  // ← modifié
+], 201);
 }
 
     /**
