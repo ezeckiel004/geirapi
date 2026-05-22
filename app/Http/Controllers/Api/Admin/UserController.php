@@ -20,9 +20,9 @@ class UserController extends Controller
      */
     public function technicians()
     {
-        $technicians = User::where('role', 'technician')
-            
-            ->get(['id', 'name', 'email', 'phone', 'matricule', 'is_active']);
+        $technicians = User::whereIn('role', ['technician', 'client_tech'])
+            ->with('parent:id,name,company_name')
+            ->get(['id', 'name', 'email', 'phone', 'matricule', 'is_active', 'role', 'parent_id']);
 
         return response()->json($technicians);
     }
