@@ -33,6 +33,12 @@ class EquipmentController extends Controller
     /** POST /api/admin/equipment */
     public function store(Request $request)
 {
+    if ($request->has('is_available')) {
+        $request->merge([
+            'is_available' => filter_var($request->input('is_available'), FILTER_VALIDATE_BOOLEAN),
+        ]);
+    }
+
     $data = $request->validate([
         'name'            => 'required|string|max:255',
         'serial_number'   => 'nullable|string|max:100',
@@ -82,6 +88,12 @@ class EquipmentController extends Controller
     /** PUT /api/admin/equipment/{id} */
     public function update(Request $request, Equipment $equipment)
 {
+    if ($request->has('is_available')) {
+        $request->merge([
+            'is_available' => filter_var($request->input('is_available'), FILTER_VALIDATE_BOOLEAN),
+        ]);
+    }
+
     $data = $request->validate([
         'agency_id'       => 'exists:agencies,id',
         'name'            => 'string|max:255',
