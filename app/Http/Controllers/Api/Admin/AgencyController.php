@@ -26,7 +26,7 @@ class AgencyController extends Controller
             $query->where('status', $request->status);
         }
 
-        return response()->json($query->latest()->paginate(20));
+        return response()->json(['data' => $query->latest()->get()]);
     }
 
     /** POST /api/admin/agencies */
