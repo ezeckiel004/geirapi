@@ -11,22 +11,23 @@ class AgencyController extends Controller
     /** GET /api/admin/agencies */
     public function index(Request $request)
     {
-        $query = Agency::with('client:id,name,company_name')
+        $query = Agency::withoutGlobalScopes()
+            ->with('client:id,name,company_name')
             ->withCount('equipment')
             ->withCount('interventions');
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
                   ->orWhere('address', 'like', "%{$request->search}%");
             });
         }
 
-        if ($request->has('status') && $request->status !== 'all') {
+        if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
-        return response()->json(['data' => $query->latest()->get()]);
+        return response()->json(['data' => $query->get()]);
     }
 
     /** POST /api/admin/agencies */
