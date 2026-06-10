@@ -27,7 +27,10 @@ class AgencyController extends Controller
             $query->where('status', $request->status);
         }
 
-        return response()->json(['data' => $query->get()]);
+        $agencies = $query->get();
+        \Illuminate\Support\Facades\Log::info('Agencies retrieved: ' . $agencies->count() . ' / Total in DB: ' . Agency::count());
+
+        return response()->json(['data' => $agencies]);
     }
 
     /** POST /api/admin/agencies */
