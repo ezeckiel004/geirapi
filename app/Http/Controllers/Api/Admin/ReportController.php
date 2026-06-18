@@ -28,7 +28,7 @@ class ReportController extends Controller
     {
         $data = $request->validate([
             'intervention_id'   => 'required|exists:interventions,id',
-            'technician_id'     => 'required|exists:users,id',
+            'technician_id'     => 'nullable|exists:users,id',
             'global_status'     => 'nullable|in:functional,partial,defective',
             'observations'      => 'nullable|string|max:2000',
             'actions_done'      => 'nullable|string|max:2000',
@@ -67,7 +67,7 @@ class ReportController extends Controller
 
         $report = Report::create([
             'intervention_id' => $data['intervention_id'],
-            'technician_id'   => $data['technician_id'],
+            'technician_id'   => $data['technician_id'] ?? auth()->id(),
             'global_status'   => $data['global_status'] ?? 'functional',
             'observations'    => $data['observations'] ?? '',
             'actions_done'    => $data['actions_done'] ?? '',
