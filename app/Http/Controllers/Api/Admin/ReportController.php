@@ -23,6 +23,87 @@ class ReportController extends Controller
         return response()->json($query->latest()->paginate(20));
     }
 
+    /** POST /api/admin/reports */
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'intervention_id'   => 'required|exists:interventions,id',
+            'technician_id'     => 'required|exists:users,id',
+            'global_status'     => 'nullable|in:functional,partial,defective',
+            'observations'      => 'nullable|string|max:2000',
+            'actions_done'      => 'nullable|string|max:2000',
+            'recommendations'   => 'nullable|string|max:1000',
+            'equipment_ids'     => 'nullable|array',
+            'equipment_ids.*'   => 'exists:equipment,id',
+            'equipment_statuses'=> 'nullable|array',
+            'pv_file'           => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'pv_type'           => 'required|in:pv_visite,pv_constat,pv_intervention',
+            'designations'      => 'nullable|string',
+            'defective_photos'     => 'nullable|array',
+            'defective_photos.*'   => 'file|mimes:jpg,jpeg,png|max:10240',
+            'report_date'       => 'required|date',
+        ]);
+
+        $intervention = \App\Models\Intervention::findOrFail($data['intervention_id']);
+
+        if ($intervention->report()->exists()) {
+            return response()->json(['message' => 'Un rapport existe déjà pour cette intervention.'], 422);
+        }
+
+        $pvPath = $request->file('pv_file')->store('reports/pvs', 'public');
+
+        $designations = null;
+        if (!empty($data['designations'])) {
+            $designations = json_decode($data['designations'], true);
+        }
+
+        $defectivePhotosPaths = [];
+        if ($request->hasFile('defective_photos')) {
+            foreach ($request->file('defective_photos') as $photo) {
+                $path = $photo->store('reports/defective', 'public');
+                $defectivePhotosPaths[] = $path;
+            }
+        }
+
+        $report = Report::create([
+            'intervention_id' => $data['intervention_id'],
+            'technician_id'   => $data['technician_id'],
+            'global_status'   => $data['global_status'] ?? 'functional',
+            'observations'    => $data['observations'] ?? '',
+            'actions_done'    => $data['actions_done'] ?? '',
+            'recommendations' => $data['recommendations'] ?? null,
+            'pv_file'         => $pvPath,
+            'pv_type'         => $data['pv_type'],
+            'designations'    => $designations,
+            'defective_photos' => $defectivePhotosPaths,
+            'status'          => 'validated',
+            'submitted_at'    => now(),
+            'sent_to_client_at' => now(),
+            'client_validated_at' => now(),
+            'report_date'     => $data['report_date'],
+        ]);
+
+        if (!empty($data['equipment_ids'])) {
+            $pivotData = [];
+            foreach ($data['equipment_ids'] as $eqId) {
+                $status = $data['equipment_statuses'][$eqId] ?? 'ok';
+                $pivotData[$eqId] = ['equipment_status' => $status, 'note' => null];
+            }
+            $report->equipment()->attach($pivotData);
+        }
+
+        $intervention->update([
+            'status'         => 'validated',
+            'completed_date' => $data['report_date'],
+        ]);
+
+        return response()->json([
+            'message' => 'Rapport antérieur enregistré avec succès.',
+            'report'  => $report->load(['equipment', 'intervention.agency:id,name'])
+                               ->append(['pv_file_url', 'defective_photos_urls']),
+        ], 201);
+    }
+
     /** GET /api/admin/reports/{id} */
     public function show(Report $report)
     {

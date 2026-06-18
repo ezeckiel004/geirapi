@@ -26,12 +26,14 @@ class Report extends Model
         'sent_to_client_at',
         'client_validated_at',
         'defective_photos',
+        'report_date',
     ];
 
     protected $casts = [
         'submitted_at'        => 'datetime',
         'sent_to_client_at'   => 'datetime',
         'client_validated_at' => 'datetime',
+        'report_date'         => 'date',
         'designations'        => 'array',
         'defective_photos'    => 'array',
     ];

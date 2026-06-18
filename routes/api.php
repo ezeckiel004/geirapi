@@ -56,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('interventions', AdminInterventionController::class);
 
         // Rapports
+        Route::post('/reports', [AdminReportController::class, 'store']);
         Route::post('/reports/{report}/send-to-client', [AdminReportController::class, 'sendToClient']);
         Route::get('/reports/{report}', [AdminReportController::class, 'show']);
         Route::get('/reports', [AdminReportController::class, 'index']);
