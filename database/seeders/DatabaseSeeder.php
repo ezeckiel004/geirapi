@@ -188,7 +188,7 @@ class DatabaseSeeder extends Seeder
         $this->command->table(
             ['Rôle', 'Email', 'Mot de passe'],
             [
-                ['Admin',      'admin@geir.fr',      'password'],
+                ['Admin',      'geirmaintenance@gmail.com',      'password'],
                 ['Client 1',   'client@acme.fr',     'password'],
                 ['Client 2',   'client@bnp.fr',      'password'],
                 ['Technicien', 'technicien@geir.fr',  'password'],
