@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
         // ── 1. Utilisateurs ───────────────────────────────────────────────
         $admin = User::create([
             'name'      => 'Jean Martin (Admin Serveur)',
-            'email'     => 'admin@geir.fr',
+            'email'     => 'geirmaintenance@gmail.com',
             'password'  => Hash::make('password'),
             'role'      => 'admin',
             'phone'     => '+33 6 10 00 00 01',
