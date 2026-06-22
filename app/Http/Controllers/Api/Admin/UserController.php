@@ -65,7 +65,7 @@ class UserController extends Controller
     ]);
 
     // Envoi de l'email de bienvenue
-    \Mail::to($technician->email)->send(new \App\Mail\TechnicianWelcomeMail($technician, $data['password']));
+    // \Mail::to($technician->email)->send(new \App\Mail\TechnicianWelcomeMail($technician, $data['password']));
 
     return response()->json([
         'message'    => 'Compte technicien créé avec succès. Un email avec les identifiants a été envoyé.',
@@ -102,7 +102,7 @@ class UserController extends Controller
     ]);
 
     // Envoi de l'email de bienvenue avec le mot de passe
-    \Mail::to($client->email)->send(new \App\Mail\ClientWelcomeMail($client, $password));
+    // \Mail::to($client->email)->send(new \App\Mail\ClientWelcomeMail($client, $password));
 
     $agency = Agency::create([
         'client_id' => $client->id,
